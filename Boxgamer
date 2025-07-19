@@ -1,0 +1,142 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Boxer Fight Game</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #healthbars {
+      position: absolute;
+      top: 10px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-family: sans-serif;
+      font-size: 18px;
+      color: white;
+    }
+    .bar {
+      width: 200px;
+      height: 20px;
+      background: red;
+      border: 2px solid white;
+    }
+  </style>
+</head>
+<body>
+  <div id="healthbars">
+    <div>Player 1 HP:<div id="p1" class="bar"></div></div>
+    <div>Player 2 HP:<div id="p2" class="bar"></div></div>
+  </div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Lights
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 7.5);
+scene.add(light);
+
+// Ground
+const floorGeo = new THREE.PlaneGeometry(20, 20);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
+
+// Boxer
+function createBoxer(color) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 2, 1),
+    new THREE.MeshStandardMaterial({ color })
+  );
+  body.position.y = 1;
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5),
+    new THREE.MeshStandardMaterial({ color })
+  );
+  head.position.y = 2.5;
+  group.add(body);
+  group.add(head);
+  return group;
+}
+
+let p1 = createBoxer('blue');
+let p2 = createBoxer('red');
+p1.position.x = -3;
+p2.position.x = 3;
+scene.add(p1);
+scene.add(p2);
+
+camera.position.set(0, 5, 10);
+camera.lookAt(0, 1, 0);
+
+// Movement
+const keys = {};
+window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+let p1hp = 100;
+let p2hp = 100;
+
+function checkHit(attacker, target, damage, range = 1.5) {
+  const dist = attacker.position.distanceTo(target.position);
+  if (dist < range) {
+    return damage;
+  }
+  return 0;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Player 1 controls: W A S D (move), J (punch), K (kick)
+  if (keys['a']) p1.position.x -= 0.1;
+  if (keys['d']) p1.position.x += 0.1;
+  if (keys['j']) {
+    const dmg = checkHit(p1, p2, 5);
+    p2hp -= dmg;
+    keys['j'] = false;
+  }
+  if (keys['k']) {
+    const dmg = checkHit(p1, p2, 10);
+    p2hp -= dmg;
+    keys['k'] = false;
+  }
+
+  // Player 2 controls: Left, Right arrows, Num1 (punch), Num2 (kick)
+  if (keys['arrowleft']) p2.position.x -= 0.1;
+  if (keys['arrowright']) p2.position.x += 0.1;
+  if (keys['1']) {
+    const dmg = checkHit(p2, p1, 5);
+    p1hp -= dmg;
+    keys['1'] = false;
+  }
+  if (keys['2']) {
+    const dmg = checkHit(p2, p1, 10);
+    p1hp -= dmg;
+    keys['2'] = false;
+  }
+
+  document.getElementById('p1').style.width = `${Math.max(p1hp, 0)*2}px`;
+  document.getElementById('p2').style.width = `${Math.max(p2hp, 0)*2}px`;
+
+  renderer.render(scene, camera);
+
+  if (p1hp <= 0 || p2hp <= 0) {
+    alert(p1hp <= 0 ? "Player 2 Wins!" : "Player 1 Wins!");
+    window.location.reload();
+  }
+}
+
+animate();
+
+  </script>
+</body>
+</html>
